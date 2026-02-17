@@ -1,7 +1,6 @@
 require('dotenv').config();
 
 const express = require('express');
-const mongoose = require('mongoose');
 const cors = require('cors');
 const http = require('http');
 const path = require('path');
@@ -18,26 +17,36 @@ const server = http.createServer(app);
 /* ================== TRUST PROXY (IMPORTANT FOR RAILWAY) ================== */
 app.set('trust proxy', 1);
 
+/* ================== ALLOWED ORIGINS ================== */
+const allowedOrigins = [
+  "https://frontend-five-blond-59.vercel.app",
+  "http://localhost:5173"
+];
+
 /* ================== SOCKET.IO ================== */
 const io = new Server(server, {
   cors: {
-    origin: [
-      "https://your-frontend.vercel.app",
-      "http://localhost:5173"
-    ],
-    methods: ["GET", "POST"],
+    origin: allowedOrigins,
+    methods: ["GET", "POST", "PUT", "DELETE"],
     credentials: true
   }
 });
 
 /* ================== SECURITY + MIDDLEWARE ================== */
 app.use(cors({
-  origin: [
-    "https://your-frontend.vercel.app",
-    "http://localhost:5173"
-  ],
+  origin: function (origin, callback) {
+    if (!origin) return callback(null, true); // Postman / mobile apps
+    if (allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error('CORS not allowed'));
+    }
+  },
   credentials: true
 }));
+
+// Handle preflight requests
+app.options('*', cors());
 
 app.use(helmet());
 
@@ -89,7 +98,7 @@ io.on('connection', (socket) => {
   });
 
   socket.on('test-trigger-alarm', (data) => {
-    console.log("ALARM TRIGGERED:", data);
+    console.log("🚨 ALARM TRIGGERED:", data);
     io.emit('emergency-alert', data);
   });
 
@@ -104,7 +113,7 @@ app.set('socketio', io);
 const PORT = process.env.PORT || 5000;
 
 server.listen(PORT, "0.0.0.0", () => {
-  console.log(`Server running on port ${PORT}`);
+  console.log(`✅ Server running on port ${PORT}`);
 });
 
 /* ================== BACKGROUND JOB ================== */
