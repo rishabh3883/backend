@@ -13,21 +13,39 @@ const mongoSanitize = require('express-mongo-sanitize');
 const xss = require('xss-clean');
 
 const app = express();
-app.set('trust proxy', 1);
 const server = http.createServer(app);
 
-// ===== Socket.io =====
+/* ================== TRUST PROXY (IMPORTANT FOR RAILWAY) ================== */
+app.set('trust proxy', 1);
+
+/* ================== SOCKET.IO ================== */
 const io = new Server(server, {
-  cors: { origin: "*" }
+  cors: {
+    origin: [
+      "https://your-frontend.vercel.app",
+      "http://localhost:5173"
+    ],
+    methods: ["GET", "POST"],
+    credentials: true
+  }
 });
 
-// ===== Middleware =====
-app.use(cors());
+/* ================== SECURITY + MIDDLEWARE ================== */
+app.use(cors({
+  origin: [
+    "https://your-frontend.vercel.app",
+    "http://localhost:5173"
+  ],
+  credentials: true
+}));
+
 app.use(helmet());
 
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 1000,
+  standardHeaders: true,
+  legacyHeaders: false,
   message: "Too many requests, please try again later."
 });
 app.use(limiter);
@@ -37,16 +55,16 @@ app.use(xss());
 app.use(express.json({ limit: '10kb' }));
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
-// ===== Health Route =====
+/* ================== HEALTH CHECK ================== */
 app.get("/", (req, res) => {
-  res.send("Smart Campus API is running 🚀");
+  res.status(200).send("Smart Campus API is running 🚀");
 });
 
-// ===== Database =====
+/* ================== DATABASE ================== */
 const connectDB = require('./config/db');
 connectDB();
 
-// ===== Routes =====
+/* ================== ROUTES ================== */
 app.use('/api/auth', require('./routes/authRoutes'));
 app.use('/api/resources', require('./routes/resourceRoutes'));
 app.use('/api/complaints', require('./routes/complaintRoutes'));
@@ -59,7 +77,7 @@ app.use('/api/events', require('./routes/eventRoutes'));
 app.use('/api/users', require('./routes/userRoutes'));
 app.use('/api/food', require('./routes/foodRoutes'));
 
-// ===== Socket connection =====
+/* ================== SOCKET EVENTS ================== */
 io.on('connection', (socket) => {
   console.log('New Client connected:', socket.id);
 
@@ -82,14 +100,14 @@ io.on('connection', (socket) => {
 
 app.set('socketio', io);
 
-// ===== Start Server =====
+/* ================== SERVER START ================== */
 const PORT = process.env.PORT || 5000;
 
 server.listen(PORT, "0.0.0.0", () => {
   console.log(`Server running on port ${PORT}`);
 });
 
-// ===== Background Job =====
+/* ================== BACKGROUND JOB ================== */
 const libraryController = require('./controllers/libraryController');
 
 setInterval(() => {
