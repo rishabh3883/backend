@@ -16,18 +16,15 @@ const app = express();
 app.set('trust proxy', 1);
 const server = http.createServer(app);
 
-// Socket.io
+// ===== Socket.io =====
 const io = new Server(server, {
-  cors: {
-    origin: "*",
-  }
+  cors: { origin: "*" }
 });
 
 // ===== Middleware =====
 app.use(cors());
 app.use(helmet());
 
-// Rate limit
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 1000,
@@ -35,17 +32,12 @@ const limiter = rateLimit({
 });
 app.use(limiter);
 
-// Security sanitization
 app.use(mongoSanitize());
 app.use(xss());
-
-// Body parser
 app.use(express.json({ limit: '10kb' }));
-
-// Static folder
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
-// ===== Health Route (Railway network check) =====
+// ===== Health Route =====
 app.get("/", (req, res) => {
   res.send("Smart Campus API is running 🚀");
 });
@@ -69,12 +61,28 @@ app.use('/api/food', require('./routes/foodRoutes'));
 
 // ===== Socket connection =====
 io.on('connection', (socket) => {
-  console.log('Client connected:', socket.id);
+  console.log('New Client connected:', socket.id);
+
+  socket.on('join-room', (role) => {
+    if (role) {
+      socket.join(role);
+      console.log(`Socket ${socket.id} joined room: ${role}`);
+    }
+  });
+
+  socket.on('test-trigger-alarm', (data) => {
+    console.log("ALARM TRIGGERED:", data);
+    io.emit('emergency-alert', data);
+  });
+
+  socket.on('disconnect', () => {
+    console.log('Client disconnected:', socket.id);
+  });
 });
 
 app.set('socketio', io);
 
-// ===== Start Server (Railway compatible) =====
+// ===== Start Server =====
 const PORT = process.env.PORT || 5000;
 
 server.listen(PORT, "0.0.0.0", () => {

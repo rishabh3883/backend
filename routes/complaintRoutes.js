@@ -16,4 +16,10 @@ router.put('/:id/status', authMiddleware(['Admin', 'Employee', 'Student']), comp
 // Staff accepts task
 router.post('/:id/assign', authMiddleware(['Employee', 'Admin']), complaintController.assignComplaint);
 
+// Student Escalates
+router.post('/:id/escalate', authMiddleware(['Student']), complaintController.escalateComplaint);
+
+// Add Message (Chat)
+router.post('/:id/message', authMiddleware(['Student', 'Admin', 'Employee']), complaintController.addMessage);
+
 module.exports = router;

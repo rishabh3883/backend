@@ -55,6 +55,13 @@ const seedData = async () => {
                 password: securityPassword,
                 role: 'Employee',
                 badges: ['Security']
+            },
+            {
+                name: 'Reserved Security AI',
+                email: 'reserved@college.edu',
+                password: commonPassword,
+                role: 'Employee',
+                badges: ['System']
             }
         ]);
         console.log('Users Seeded');
